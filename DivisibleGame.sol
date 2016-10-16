@@ -20,8 +20,22 @@ mapping (uint => Game) Games; //Essentially assigns the Game to a Game ID
 
 modifier gameOver(uint gameID) //Used to prevent certain functions from being run prior to a game finishing
 {
-    if (Games[gameID].gameOver == false) 
+    if (Games[gameID].gameOver != false) 
+    {
+      throw;
+    }
     _    
+    
+}
+
+modifier gameNotOver(uint gameID) //Used to prevent certain functions from being run after a game is over
+{
+  if (Games[gameID].gameOver != true) 
+  {
+    throw;
+  }
+  _
+  
 }
 
 //Creates a new game
@@ -45,6 +59,7 @@ modifier gameOver(uint gameID) //Used to prevent certain functions from being ru
      {
          uint _amountBet = msg.value;
          address _player2 = msg.sender;
+         uint _gameID = gameID;
         
     
          Games[gameID].player2 = _player2;
@@ -54,15 +69,16 @@ modifier gameOver(uint gameID) //Used to prevent certain functions from being ru
         
         uint sumNumbers = Games[gameID].numberChosen1 + Games[gameID].numberChosen2;
         
-        bool isDivisibleResult;
+        bool _isDivisible;
      
      if ( sumNumbers % 2 == 0) 
-        isDivisibleResult = true;
+        _isDivisible = true;
      else 
-        isDivisibleResult = false; 
+        _isDivisible = false; 
      
-     endGame(isDivisibleResult, gameID);
+     endGame(_isDivisible, _gameID);
      }    
+     else throw;
       
         
   } 
@@ -72,33 +88,31 @@ modifier gameOver(uint gameID) //Used to prevent certain functions from being ru
   {
     address _player1 = Games[gameID].player1;
     address _player2 = Games[gameID].player2;
-    uint amountWon = Games[gameID].amountWagered - (Games[gameID].amountWagered * (Games[gameID].amountTip/100))
+    uint amountWon = Games[gameID].amountWagered - (Games[gameID].amountWagered * (Games[gameID].amountTip/100));
     uint amountTipped = Games[gameID].amountWagered * (Games[gameID].amountTip/100);
     bool betDivisible = Games[gameID].isDivisible;
     
-      if (isDivisibleResult == true && betDivisible == true)
+      if (isDivisibleResult == true && betDivisible == true || isDivisibleResult == false && isDivisibleResult == false)
       {
           if (_player1.send(amountWon)==false) throw;
-      } else if (_player2.send(amountWon)==false)throw;
-      
-      if (isDivisibleResult == false && betDivisible == false)
-      {
-         if (_player1.send(amountWon)==false) throw;
-      } else if (_player2.send(amountWon)==false)throw;
-      
+
+      }   else if (_player2.send(amountWon)==false) throw;
+
+    
   }
   
 //Returns details of a specific game based on the Game ID given to the function.  Mainly for testing purposes right now.  
-  function getGameDetails(uint gameID) gameOver(gameID) constant returns(address player1, uint numberChosen1, uint amountWagered, address player2, uint numberChosen2)
+  function getGameDetails(uint gameID) gameNotOver(gameID) constant returns(address _player1, uint _numberChosen1, uint _amountWagered, address _player2, uint _numberChosen2, bool _gameOver)
   {
-     player1 = Games[gameID].player1;
-     numberChosen1 = Games[gameID].numberChosen1;
-     amountWagered = Games[gameID].amountWagered;
-     player2 = Games[gameID].player2;
-     numberChosen2 = Games[gameID].numberChosen2;
+     _player1 = Games[gameID].player1;
+     _numberChosen1 = Games[gameID].numberChosen1;
+     _amountWagered = Games[gameID].amountWagered;
+     _player2 = Games[gameID].player2;
+     _numberChosen2 = Games[gameID].numberChosen2;
+     _gameOver = Games[gameID].gameOver;
      
      
-     return (player1, numberChosen1, amountWagered, player2, numberChosen2);
+     return (_player1, _numberChosen1, _amountWagered, _player2, _numberChosen2, _gameOver);
   }
   
 //Returns the number of games that have been created so far.  Mainly for testing purposes right now.  
@@ -110,5 +124,13 @@ modifier gameOver(uint gameID) //Used to prevent certain functions from being ru
   
 //Destroys contract.
   function kill() {if (msg.sender == owner) selfdestruct(owner);}
+
+//Fallback function
+  function()
+  {
+      throw;
+  }
+
+
 
   }
